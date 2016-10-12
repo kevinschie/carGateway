@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" activate="activate" configuration-policy="require" deactivate="deactivate" immediate="true" modified="updated" name="de.kevinschie.carGateway.Gateway">
+   <implementation class="de.kevinschie.carGateway.Gateway"/>
+   <service>
+      <provide interface="de.kevinschie.carGateway.Gateway"/>
+   </service>
+   <property name="service.pid" type="String" value="de.kevinschie.carGateway.Gateway"/>
+   <reference bind="setCloudService" cardinality="1..1" interface="org.eclipse.kura.cloud.CloudService" name="CloudService" policy="static" unbind="unsetCloudService"/>
+</scr:component>

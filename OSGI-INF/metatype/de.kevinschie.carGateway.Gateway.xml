@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MetaData xmlns="http://www.osgi.org/xmlns/metatype/v1.2.0" localization="en_us">
+    <OCD id="de.kevinschie.carGateway.Gateway"
+         name="Gateway" 
+         description="This is a simulator for an car gateway application.">
+        
+        <Icon resource="OSGI-INF/car.png" size="32"/>
+
+
+		<AD id="json.directory"  
+            name="json.directory"
+            type="String"
+            cardinality="0" 
+            required="true"
+            default="/Users/kevinschie/Desktop/downtown-crosstown.json"
+            description="Path of the JSON file with the test data."/>
+
+        <AD id="publish.rate"  
+            name="publish.rate"
+            type="Integer"
+            cardinality="0" 
+            required="true"
+            default="2"
+            min="1" 
+            description="Default message publishing rate in seconds (min 1)."/>
+
+        <AD id="publish.semanticTopic"  
+            name="publish.semanticTopic"
+            type="String"
+            cardinality="0" 
+            required="true"
+            default="data" 
+            description="Default semantic topic to publish the messages to."/>
+        
+        <AD id="publish.qos"  
+            name="publish.qos"
+            type="Integer"
+            cardinality="0" 
+            required="true"
+            default="0" 
+            description="Default QoS to publish the messages with.">
+           <Option label="Fire and forget" value="0"/>
+           <Option label="Al least once" value="1"/>          
+           <Option label="At most once" value="2"/>
+        </AD>
+
+        <AD id="publish.retain"  
+            name="publish.retain"
+            type="Boolean"
+            cardinality="0" 
+            required="true"
+            default="false" 
+            description="Default retaing flag for the published messages."/>
+    </OCD>
+    
+    <Designate pid="de.kevinschie.carGateway.Gateway">
+        <Object ocdref="de.kevinschie.carGateway.Gateway"/>
+    </Designate>
+</MetaData>
