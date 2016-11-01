@@ -12,7 +12,7 @@
             type="String"
             cardinality="0" 
             required="true"
-            default="/Users/kevinschie/Desktop/downtown-crosstown.json"
+            default="../../data/downtown-crosstown.json"
             description="Path of the JSON file with the test data."/>
 
         <AD id="publish.rate"  

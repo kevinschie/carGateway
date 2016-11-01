@@ -1,6 +1,7 @@
 package de.kevinschie.carGateway;
 
 import java.io.File;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
@@ -22,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.kevinschie.JSONReader.JSONReader;
+import de.kevinschie.SimulatorListener.SimulationListener;
 
 public class Gateway implements ConfigurableComponent, CloudClientListener  
 {	
@@ -30,7 +32,7 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 	// Cloud Application identifier
 	private static final String APP_ID = "carGateway";
 	
-	private static final String	  JSON_FILE_DIRECTORY	   = "json.directory";
+	private static final String	  JSON_FILE_DIRECTORY	   = new File("src/data/downtown-crosstown.json").getAbsolutePath();;//"json.directory";
 
 	private static final String   PUBLISH_RATE_PROP_NAME   = "publish.rate";
 	private static final String   PUBLISH_TOPIC_PROP_NAME  = "publish.semanticTopic";
@@ -46,6 +48,7 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 	private Map<String, Object>         m_properties;
 	
 	private JSONReader					m_jsonReader;
+	//private SimulationListener			m_simListener;
 	private ArrayList<JSONObject>		m_carMessages;
 	
 	// ----------------------------------------------------------------
@@ -59,6 +62,7 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 		super();
 		m_worker = Executors.newSingleThreadScheduledExecutor();
 		m_jsonReader = new JSONReader();
+		//m_simListener = new SimulationListener();
 	}
 
 	public void setCloudService(CloudService cloudService) {
@@ -94,9 +98,11 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 			m_cloudClient.addCloudClientListener(this);
 			
 			// Don't subscribe because these are handled by the default 
-			// subscriptions and we don't want to get messages twice			
+			// subscriptions and we don't want to get messages twice
 			doUpdate(false);
-			m_carMessages = m_jsonReader.ReadJSON(new File((String) m_properties.get(JSON_FILE_DIRECTORY)), "UTF-8");
+			//m_carMessages = m_jsonReader.ReadJSON(new File((String) m_properties.get(JSON_FILE_DIRECTORY)), "UTF-8");
+			m_carMessages = m_jsonReader.ReadJSON();
+			//m_simListener.listenToSimulator();
 		}
 		catch (Exception e) {
 			s_logger.error("Error during component activation", e);
