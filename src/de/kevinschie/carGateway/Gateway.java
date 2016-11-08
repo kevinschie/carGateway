@@ -32,8 +32,6 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 	// Cloud Application identifier
 	private static final String APP_ID = "carGateway";
 	
-	private static final String	  JSON_FILE_DIRECTORY	   = new File("src/data/downtown-crosstown.json").getAbsolutePath();;//"json.directory";
-
 	private static final String   PUBLISH_RATE_PROP_NAME   = "publish.rate";
 	private static final String   PUBLISH_TOPIC_PROP_NAME  = "publish.semanticTopic";
 	private static final String   PUBLISH_QOS_PROP_NAME    = "publish.qos";
@@ -100,7 +98,6 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 			// Don't subscribe because these are handled by the default 
 			// subscriptions and we don't want to get messages twice
 			doUpdate(false);
-			//m_carMessages = m_jsonReader.ReadJSON(new File((String) m_properties.get(JSON_FILE_DIRECTORY)), "UTF-8");
 			m_carMessages = m_jsonReader.ReadJSON();
 			//m_simListener.listenToSimulator();
 		}
@@ -233,8 +230,6 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 		payload.setTimestamp(new Date());
 		
 		// Add the temperature as a metric to the payload
-		
-
 		try {
 			int i = 0;
 			for (JSONObject jsonObject : m_carMessages) {
@@ -245,8 +240,6 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
-		
-		//payload.addMetric("data", m_carMessages);
 		
 		// Publish the message
 		try {
