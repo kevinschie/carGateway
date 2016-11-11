@@ -1,7 +1,5 @@
 package de.kevinschie.carGateway;
 
-import java.io.File;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Map;
@@ -23,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.kevinschie.JSONReader.JSONReader;
-import de.kevinschie.SimulatorListener.SimulationListener;
 
 public class Gateway implements ConfigurableComponent, CloudClientListener  
 {	
@@ -33,7 +30,6 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 	private static final String APP_ID = "carGateway";
 	
 	private static final String   PUBLISH_RATE_PROP_NAME   = "publish.rate";
-	private static final String   PUBLISH_TOPIC_PROP_NAME  = "publish.semanticTopic";
 	private static final String   PUBLISH_QOS_PROP_NAME    = "publish.qos";
 	private static final String   PUBLISH_RETAIN_PROP_NAME = "publish.retain";
 	
@@ -46,7 +42,6 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 	private Map<String, Object>         m_properties;
 	
 	private JSONReader					m_jsonReader;
-	//private SimulationListener			m_simListener;
 	private ArrayList<JSONObject>		m_carMessages;
 	
 	// ----------------------------------------------------------------
@@ -60,7 +55,6 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 		super();
 		m_worker = Executors.newSingleThreadScheduledExecutor();
 		m_jsonReader = new JSONReader();
-		//m_simListener = new SimulationListener();
 	}
 
 	public void setCloudService(CloudService cloudService) {
@@ -99,7 +93,6 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 			// subscriptions and we don't want to get messages twice
 			doUpdate(false);
 			m_carMessages = m_jsonReader.ReadJSON();
-			//m_simListener.listenToSimulator();
 		}
 		catch (Exception e) {
 			s_logger.error("Error during component activation", e);
@@ -150,39 +143,33 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 	@Override
 	public void onControlMessageArrived(String deviceId, String appTopic,
 			KuraPayload msg, int qos, boolean retain) {
-		// TODO Auto-generated method stub
-		
+		s_logger.info("Got control message from device: {} to topic: {}!", deviceId, appTopic);
 	}
 
 	@Override
 	public void onMessageArrived(String deviceId, String appTopic,
 			KuraPayload msg, int qos, boolean retain) {
-		// TODO Auto-generated method stub
-		
+		s_logger.info("Got message from device: {} to topic: {}!", deviceId, appTopic);
 	}
 
 	@Override
 	public void onConnectionLost() {
-		// TODO Auto-generated method stub
-		
+		s_logger.info("Lost connection!");
 	}
 
 	@Override
 	public void onConnectionEstablished() {
-		// TODO Auto-generated method stub
-		
+		s_logger.info("Connection established!");
 	}
 
 	@Override
 	public void onMessageConfirmed(int messageId, String appTopic) {
-		// TODO Auto-generated method stub
-		
+		s_logger.info("Message {} to {} confirmed!", messageId, appTopic);
 	}
 
 	@Override
 	public void onMessagePublished(int messageId, String appTopic) {
-		// TODO Auto-generated method stub
-		
+		s_logger.info("Message {} published to {}!", messageId, appTopic);
 	}
 	
 	// ----------------------------------------------------------------
@@ -219,7 +206,7 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 	private void doPublish() 
 	{				
 		// fetch the publishing configuration from the publishing properties
-		String  topic  = (String) m_properties.get(PUBLISH_TOPIC_PROP_NAME);
+		String  topic  = "";
 		Integer qos    = (Integer) m_properties.get(PUBLISH_QOS_PROP_NAME);
 		Boolean retain = (Boolean) m_properties.get(PUBLISH_RETAIN_PROP_NAME);
 				
@@ -229,25 +216,35 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 		// Timestamp the message
 		payload.setTimestamp(new Date());
 		
-		// Add the temperature as a metric to the payload
 		try {
-			int i = 0;
-			for (JSONObject jsonObject : m_carMessages) {
-				String s = "{\"name\":\""+jsonObject.get("name")+"\",\"value\":"+jsonObject.get("value")+",\"timestamp\":"+jsonObject.get("timestamp")+"}";
-				payload.addMetric("data"+i, s);
-				i++;
+			if(m_cloudClient.isConnected())
+			{
+				int i = 0;
+				for (JSONObject jsonObject : m_carMessages) {
+					topic = jsonObject.get("name").toString();
+					String s = "{\"name\":\""+jsonObject.get("name")+"\",\"value\":"+jsonObject.get("value")+",\"timestamp\":"+jsonObject.get("timestamp")+"}";
+					payload.addMetric("data"+i, s);
+					if(jsonObject.get("name").toString().equals("engine_speed") && jsonObject.getInt("value") > 772)
+					{
+						qos = 2;
+						s_logger.info("Important value: QoS 2");
+					}
+					m_cloudClient.publish(topic, payload, qos, retain);
+					System.out.println("Sent message: '" + s + "'");
+					s_logger.info("Published to {} message: {}", topic, payload);
+					i++;
+				}
+			}
+			else
+			{
+				s_logger.info("Cannot publish topic: "+topic);
+				System.out.println("Cannot publish topic: "+topic);
 			}
 		} catch (JSONException e) {
 			e.printStackTrace();
-		}
-		
-		// Publish the message
-		try {
-			m_cloudClient.publish(topic, payload, qos, retain);
-			s_logger.info("Published to {} message: {}", topic, payload);
-		} 
-		catch (Exception e) {
-			s_logger.error("Cannot publish topic: "+topic, e);
+		} catch (Exception ex) {
+			s_logger.error("Cannot publish topic: "+topic, ex);
+			System.out.println("Cannot publish topic: "+topic);
 		}
 	}
 }

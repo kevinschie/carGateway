@@ -23,14 +23,6 @@
             default="2"
             min="1" 
             description="Default message publishing rate in seconds (min 1)."/>
-
-        <AD id="publish.semanticTopic"  
-            name="publish.semanticTopic"
-            type="String"
-            cardinality="0" 
-            required="true"
-            default="data" 
-            description="Default semantic topic to publish the messages to."/>
         
         <AD id="publish.qos"  
             name="publish.qos"
