@@ -12,7 +12,7 @@
             type="String"
             cardinality="0" 
             required="true"
-            default="../../data/downtown-crosstown.json"
+            default="downtown-crosstown.json"
             description="Path of the JSON file with the test data."/>
 
         <AD id="publish.rate"  
@@ -43,6 +43,26 @@
             required="true"
             default="false" 
             description="Default retaing flag for the published messages."/>
+            
+        <AD id="subscribe.topic"  
+            name="subscribe.topic"
+            type="String"
+            cardinality="0" 
+            required="false"
+            default="" 
+            description="Topic you want to subscribe."/>
+        
+        <AD id="subscribe.qos"  
+            name="subscribe.qos"
+            type="Integer"
+            cardinality="0" 
+            required="false"
+            default="0" 
+            description="Default QoS to subscribe the messages with.">
+           <Option label="Fire and forget" value="0"/>
+           <Option label="Al least once" value="1"/>          
+           <Option label="At most once" value="2"/>
+        </AD>
     </OCD>
     
     <Designate pid="de.kevinschie.carGateway.Gateway">

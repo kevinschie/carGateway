@@ -1,13 +1,14 @@
 package de.kevinschie.carGateway;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
 import org.eclipse.kura.cloud.CloudClient;
 import org.eclipse.kura.cloud.CloudClientListener;
 import org.eclipse.kura.cloud.CloudService;
@@ -29,9 +30,12 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 	// Cloud Application identifier
 	private static final String APP_ID = "carGateway";
 	
+	private static final String   JSON_DIRECTORY_PROP_NAME = "json.directory";
 	private static final String   PUBLISH_RATE_PROP_NAME   = "publish.rate";
 	private static final String   PUBLISH_QOS_PROP_NAME    = "publish.qos";
 	private static final String   PUBLISH_RETAIN_PROP_NAME = "publish.retain";
+	private static final String   SUBSCRIBE_TOPIC_PROP_NAME= "subscribe.topic";
+	private static final String   SUBSCRIBE_QOS_PROP_NAME  = "subscribe.qos";
 	
 	private CloudService                m_cloudService;
 	private CloudClient      			m_cloudClient;
@@ -43,6 +47,7 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 	
 	private JSONReader					m_jsonReader;
 	private ArrayList<JSONObject>		m_carMessages;
+	private Map<String, Integer>		m_subscriptions;
 	
 	// ----------------------------------------------------------------
 	//
@@ -55,6 +60,7 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 		super();
 		m_worker = Executors.newSingleThreadScheduledExecutor();
 		m_jsonReader = new JSONReader();
+		m_subscriptions = new HashMap<String, Integer>();
 	}
 
 	public void setCloudService(CloudService cloudService) {
@@ -89,10 +95,8 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 			m_cloudClient = m_cloudService.newCloudClient(APP_ID);
 			m_cloudClient.addCloudClientListener(this);
 			
-			// Don't subscribe because these are handled by the default 
-			// subscriptions and we don't want to get messages twice
 			doUpdate(false);
-			m_carMessages = m_jsonReader.ReadJSON();
+			m_carMessages = m_jsonReader.ReadJSON(JSON_DIRECTORY_PROP_NAME);
 		}
 		catch (Exception e) {
 			s_logger.error("Error during component activation", e);
@@ -105,6 +109,8 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 	protected void deactivate(ComponentContext componentContext) 
 	{
 		s_logger.debug("Deactivating Gateway...");
+		
+		m_subscriptions.clear();
 
 		// shutting down the worker and cleaning up the properties
 		m_worker.shutdown();
@@ -149,7 +155,13 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 	@Override
 	public void onMessageArrived(String deviceId, String appTopic,
 			KuraPayload msg, int qos, boolean retain) {
-		s_logger.info("Got message from device: {} to topic: {}!", deviceId, appTopic);
+		try
+		{
+			s_logger.info("Got message from device: {} to topic: {}!", deviceId, appTopic);
+			System.out.println("Got message from device: " + deviceId + " to topic: " + appTopic + " with message: " + new String(msg.getBody(), "UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -187,6 +199,10 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 		if (m_handle != null) {
 			m_handle.cancel(true);
 		}
+		if(onUpdate)
+		{
+			m_carMessages = m_jsonReader.ReadJSON(JSON_DIRECTORY_PROP_NAME);
+		}
 		
 		// schedule a new worker based on the properties of the service
 		int pubrate = (Integer) m_properties.get(PUBLISH_RATE_PROP_NAME);
@@ -195,6 +211,7 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 			public void run() {
 				Thread.currentThread().setName(getClass().getSimpleName());
 				doPublish();
+				doSubscription();
 			}
 		}, 0, pubrate, TimeUnit.SECONDS);
 	}
@@ -247,5 +264,50 @@ public class Gateway implements ConfigurableComponent, CloudClientListener
 			System.out.println("Cannot publish topic: "+topic);
 		}
 	}
+	
+	/**
+	 * Is used for Subscription to a specific topic
+	 */
+	private void doSubscription()
+	{
+		String topic   = (String) m_properties.get(SUBSCRIBE_TOPIC_PROP_NAME);
+		Integer qos    = (Integer) m_properties.get(SUBSCRIBE_QOS_PROP_NAME);
+		
+		try
+		{
+			if(m_cloudClient.isConnected() && !m_subscriptions.containsKey(topic))
+			{
+				m_cloudClient.subscribe(topic, qos);
+				System.out.println("Subscribed to topic: " + topic + " with QOS: " + qos);
+				m_subscriptions.put(topic, qos);
+			}
+		}
+		catch(Exception ex)
+		{
+			s_logger.error("Cannot subscribe to topic: "+topic, ex);
+			System.out.println("Cannot subscribe to topic: "+topic);
+		}
+	}
+	
+	/**
+	 * Used for unsubscription from one topic.
+	 * @param topic
+	 */
+	public void doUnsubscription(String topic)
+	{
+		try
+		{
+			if(m_cloudClient.isConnected() && !topic.isEmpty())
+			{
+				m_cloudClient.unsubscribe(topic);
+				System.out.println("Unsubscribed from topic: " + topic);
+				m_subscriptions.remove(topic);
+			}
+		}
+		catch(Exception ex)
+		{
+			s_logger.error("Cannot unsubscribe from topic: "+topic, ex);
+			System.out.println("Cannot unsubscribe from topic: "+topic);
+		}
+	}
 }
-
